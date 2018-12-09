@@ -1,0 +1,284 @@
+<?php /** * Implements hook_init() */ 
+$rows = array(); 
+function dapages_init(){ } 
+
+/** * Implements hook_permission() */ 
+function dapages_permission(){   
+	return array('access page manager' => array(
+      'title' => t('Access Page Manager'),
+	  'description' => t('Permission for accessing the page manager module.'),
+    ),
+  );
+}
+
+/**
+* Implements hook_help()
+*/
+
+function dapages_help($path, $arg){
+  switch ($path) {
+    case 'pages/manage':
+      // Help text for the simple page registered for this path.
+      return t('This section displays the list of Pages.');
+  }
+}
+
+/**
+* Implements hook_menu()
+*/
+
+function dapages_menu(){
+  $items['pages/summary'] = array(
+    'title' => 'Page Manager',
+    'page callback' => 'pages_summary',
+    'access arguments' => array('access page manager'),
+    'expanded' => TRUE,
+  );
+  $items['pages/update'] = array(
+    'title' => 'Toggle Status',
+    'page callback' => 'pages_update',
+    'access arguments' => array('access page manager'),
+    'expanded' => TRUE,
+  );
+  $items['pages/add'] = array(
+    'title' => 'Add Page',
+    'page callback' => 'drupal_get_form',
+	'page arguments' => array('pages_add'),
+    'access arguments' => array('access page manager'),
+    'expanded' => TRUE,
+  );
+   $items['pages/edit'] = array(
+    'title' => 'Edit Page',
+    'page callback' => 'drupal_get_form',
+	'page arguments' => array('pages_edit'),
+    'access arguments' => array('access page manager'),
+    'expanded' => TRUE,
+  );
+  $items['pages/delete'] = array(
+    'title' => 'Delete Page',
+    'page callback' => 'pages_delete',
+    'access arguments' => array('access page manager'),
+    'expanded' => TRUE,
+  );
+  return $items;
+}
+
+function pages_summary($arg = 0){
+  $result = db_query("select id, name, (select count(*) from dapages a where b.id = a.page_id) count, active  from dapages b where page_id=$arg");
+  $rows = array();
+  $i=0;
+  foreach ($result as $record) {
+    $rows[] = array_map('check_plain', (array)$record);
+	//Make name as hyperlink if it has some count value
+	if($rows[$i]['count'] > 0){
+		 $rows[$i]['name']= l($rows[$i]['name'], 'pages/summary/'.$rows[$i]['id']);
+	}
+	//Make active value as standard icon
+	$rows[$i]['active'] = $rows[$i]['active']==1
+		? l(theme('image', array('path' => drupal_get_path('module','dapages').'/images/active.png', 'alt' => 'Active image', 'title' => 'Active',)),'pages/update',array('html' => TRUE, 'query' => array('id' => $rows[$i]['id'])))
+		: l(theme('image', array('path' => drupal_get_path('module','dapages').'/images/inactive.png', 'alt' => 'Inactive image', 'title' => 'Inactive',)),'pages/update',array('html' => TRUE, 'query' => array('id' => $rows[$i]['id'])));
+	$rows[$i]['edit'] = l('Edit', 'pages/edit', array('query' => array('id' => $rows[$i]['id'])));
+	if($rows[$i]['count'] == 0)
+		$rows[$i]['delete'] = l('Delete', 'pages/delete', array('query' => array('id' => $rows[$i]['id'])));
+	$i++;
+  }
+  $header = array(t('Id'), t('Name'), t('Total'), t('Active'),t('Edit'),t('Delete'));
+  $output = theme('table', array('header' => $header, 'rows' => $rows));
+  $output .= l('Add Page', 'pages/add');
+  //die(var_dump(get_defined_vars()));
+  //ddebug_backtrace();
+  return $output;
+}
+
+function pages_update(){
+	$result = db_query("update dapages set active = !active where id={$_GET['id']}");
+	header("Location: summary");
+}
+
+function pages_delete(){
+	$result = db_query("DELETE FROM dapages where id={$_GET['id']}");
+	header("Location: summary");
+}
+
+function pages_add($form, &$form_submit){
+	$pages = getPages();
+	$form['name'] = array(
+		'#title' => t('Page Name'),
+		'#type' => 'textfield',
+		'#required' => TRUE,
+		'#description' => t('Name of the page'),
+	);
+	$form['page_id'] = array(
+		'#title' => t('Parent Page'),
+		'#type' => 'select',
+		'#options' => $pages,
+		'#default_value' => $pages[0],
+		'#description' => t('Select parent page for the current one.'),
+	);
+	$form['contents'] = array(
+		'#title' => t('Contents'),
+		'#type' => 'textarea',
+		'#cols' => 50,
+		'#rows' => 5,
+	);
+	$form['title'] = array(
+		'#title' => t('Title'),
+		'#type' => 'textfield',
+	);
+	$form['meta_keywords'] = array(
+		'#title' => t('Meta Keywords'),
+		'#type' => 'textfield',
+	);
+	$form['meta_description'] = array(
+		'#title' => t('Meta Description'),
+		'#type' => 'textfield',
+	);
+	$form['active'] = array(
+		'#title' => t('Status'),
+		'#type' => 'checkbox',
+	);
+	$form['position'] = array(
+		'#title' => t('Display Order'),
+		'#type' => 'weight',
+		'#delta'=>50
+	);
+	$form['submit'] = array(
+		'#type' => 'submit',
+		'#value' => 'Submit',
+	);
+	//kpr($form);
+	return $form;
+}
+
+function pages_edit($form, &$form_submit){
+	$pages = getPages();
+	if(isset($_GET['id']) && !empty($_GET['id'])){
+	$result = db_query("SELECT * FROM dapages WHERE id = {$_GET['id']}");
+	$row = array();
+	foreach($result as $record){
+		$row = (array)$record;
+	}
+	}
+	$form['id'] = array(
+		'#value' => $row['id'],
+		'#type' => 'hidden',
+	);
+	$form['name'] = array(
+		'#title' => t('Page Name'),
+		'#type' => 'textfield',
+		'#default_value' => $row['name'],
+		'#required' => TRUE,
+		'#description' => t('Name of the page'),
+	);
+	$form['page_id'] = array(
+		'#title' => t('Parent Page'),
+		'#type' => 'select',
+		'#options' => $pages,
+		'#default_value' =>  $row['page_id'],
+		'#description' => t('Select parent page for the current one.'),
+	);
+	$form['contents'] = array(
+		'#title' => t('Contents'),
+		'#type' => 'textarea',
+		'#default_value' => $row['contents'],
+		'#cols' => 50,
+		'#rows' => 5,
+	);
+	$form['title'] = array(
+		'#title' => t('Title'),
+		'#type' => 'textfield',
+		'#default_value' => $row['title'],
+	);
+	$form['meta_keywords'] = array(
+		'#title' => t('Meta Keywords'),
+		'#type' => 'textfield',
+		'#default_value' => $row['meta_keywords'],
+	);
+	$form['meta_description'] = array(
+		'#title' => t('Meta Description'),
+		'#type' => 'textfield',
+		'#default_value' => $row['meta_description'],
+	);
+	$form['active'] = array(
+		'#title' => t('Status'),
+		'#type' => 'checkbox',
+		'#default_value' => $row['active'],
+	);
+	$form['position'] = array(
+		'#title' => t('Display Order'),
+		'#type' => 'weight',
+		'#default_value' => $row['position'],
+		'#delta'=>50
+	);
+	$form['submit'] = array(
+		'#type' => 'submit',
+		'#value' => 'Submit',
+	);
+	//kpr($form);
+	return $form;
+}
+/*function pages_add_validate($form, &$form_state){
+	if($form_state['values']['name'] == ''){
+		form_set_error('name', 'Page name is required');
+	}
+}*/
+
+function pages_add_submit($form, &$form_state){
+	//kpr($form);exit;
+	$name = $form_state['values']['name'];
+	$page_id = $form_state['values']['page_id'];
+	$contents = $form_state['values']['contents'];
+	$title = $form_state['values']['title'];
+	$meta_keywords = $form_state['values']['meta_keywords'];
+	$meta_description = $form_state['values']['meta_description'];
+	$active = $form_state['values']['active'];
+	$position= $form_state['values']['position'];
+	$result = db_query("INSERT INTO dapages(name,page_id,contents,title,meta_keywords,meta_description,active,position) VALUES('{$name}', {$page_id}, '{$contents}', '{$title}', '{$meta_keywords}', '{$meta_description}', {$active}, {$position} )	");
+	$form_state['redirect'] = 'pages/summary';
+}
+
+function getPages(){
+	global $rows;
+	$result = db_query("SELECT id, name, page_id FROM dapages");
+	$pages = array('ROOT');
+	$i=0;
+	foreach ($result as $record) {
+		$record = (array)$record;
+		$rows[] = $record;
+		$pages[$record['id']] = getParentHierarchy($record['id'],$i);
+		$i++;
+	}
+	return $pages;
+}
+
+function getParentHierarchy($id,$no){
+	global $rows;
+	$str = $rows[$no]['name'];
+	$val = $rows[$no]['page_id'];
+	while($val != 0){
+		foreach($rows as $row){
+			if($row['id'] == $val){
+				$str = $row['name'] . " | " .$str;
+				$val = $row['page_id'];
+				break;
+			}
+		}
+	}
+	return $str;
+}
+
+function pages_edit_submit($form, &$form_state){
+	//kpr($form);exit;
+	$name = $form_state['values']['name'];
+	$page_id = $form_state['values']['page_id'];
+	$contents = $form_state['values']['contents'];
+	$title = $form_state['values']['title'];
+	$meta_keywords = $form_state['values']['meta_keywords'];
+	$meta_description = $form_state['values']['meta_description'];
+	$active = $form_state['values']['active'];
+	$position= $form_state['values']['position'];
+
+	$id = $form_state['values']['id'];
+	$result = db_query("UPDATE dapages SET name='{$name}',page_id={$page_id},contents='{$contents}',title='{$title}',meta_keywords='{$meta_keywords}',meta_description='{$meta_description}',active={$active},position={$position} WHERE id = {$id}");
+	$form_state['redirect'] = 'pages/summary';
+}

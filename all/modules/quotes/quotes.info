@@ -1,0 +1,10 @@
+name = Custom Module
+description = Testing form Submission in custom table for Drupal.
+core = 7.x
+package = My Custom Module
+configure = admin/quotes/my_custom_quotes
+regions[content] = 'content'
+version = 7.x-3.2.1
+core = 7.x
+project = my_custom_module
+datestamp = 1385568677

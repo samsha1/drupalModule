@@ -1,0 +1,9 @@
+[text]
+name = Page Manager
+description = This module provides the built-in functionality of static pages
+package = Design Aeon
+core = 7.x
+version = 7.x
+files[] = images/active.png
+
+[/text]
