@@ -1,0 +1,48 @@
+<?php
+
+function student_install(){
+	drupal_install_schema('student');
+}
+
+function student_uninstall(){
+	drupal_uninstall_schema('student');
+}
+
+function student_schema(){
+
+	$schema['student']=array(
+		'fields'=>array(
+			'sid'=>array(
+				'type'=> 'serial',
+				'not null' =>true,
+
+			),
+			'name' => array(
+				'type' => 'varchar',
+				'length' => '255',
+				'not null' =>true,
+
+			),
+			'faculty' => array(
+				'type' => 'varchar',
+				'length' => '255',
+				'not null' => true,
+
+			),
+
+			'age' => array(
+				'type' => 'int',
+				'not null' => true,
+
+			),
+
+		),
+
+		'primary key' => array('sid')
+	);
+
+	return $schema;
+
+}
+
+?>

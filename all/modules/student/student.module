@@ -1,0 +1,103 @@
+<?php 
+$rows = array(); 
+function student_init(){ } 
+
+/** * Implements hook_permission() */ 
+function student_permission(){   
+	return array('access page manager' => array(
+		'title' => t('Access Page Manager'),
+		'description' => t('Permission for accessing the page manager module.'),
+	),
+);
+}
+
+/**
+* Implements hook_help()
+*/
+
+function student_menu(){
+	$items['student/add'] = array(
+		'type' => MENU_CALLBACK,
+		'title'=>"Add Students",
+		'page callback'=>'drupal_get_form',
+		'page arguments' => array('student_add'),
+		'access arguments' => array('access content'),
+		'expanded' => TRUE,
+
+	);
+
+	$items['student/view'] = array(
+		'title'=>"View Students",
+		'page callback'=>'student_view',
+		'access arguments' => array('access content'),
+		'expanded' => TRUE,
+
+	);
+
+	return $items;
+}
+
+
+function student_view(){
+	$results=db_query('SELECT * FROM student ORDER BY sid DESC');
+	$rows = array();
+	$i=0;
+		foreach ($results as  $record) { 
+			$rows[] = array_map('check_plain', (array)$record);
+			$rows[$i]['sid']=$rows[$i]['sid'];
+			$rows[$i]['faculty']=$rows[$i]['faculty'];
+			$rows[$i]['age']=$rows[$i]['age'];
+			$rows[$i]['edit']=l('Edit','student/edit',array('query' => array('id'=>$rows[$i]['sid'])));
+			$rows[$i]['delete']=l('Delete','student/delete',array('query' => array('id'=>$rows[$i]['sid'])));
+			$i++;
+	}
+	$header = array(t('Id'), t('Name'), t('Faculty'), t('Age'),t('Edit'),t('Delete'));
+	$output = theme('table', array('header' => $header, 'rows' => $rows));
+	$output .= l('Add Student', 'student/add');
+
+	return $output;
+}
+
+
+function student_add($form,&$form_submit){
+	$form =array();
+	$form['name'] = array(
+		'#type'=>'textfield',
+		'#title'=>t('Enter your name'),
+		'#description'=>t('Your first name goes here')
+	);
+
+	$form['faculty'] = array(
+		'#type'=>'textfield',
+		'#title'=>t('Enter your Faculty'),
+		'#description'=>t('Your Faculty name goes here')
+	);
+
+	$form['age'] = array(
+		'#type'=>'textfield',
+		'#title'=>t('Enter your Age')
+	);
+
+	$form['submit'] = array(
+		'#type' => 'submit',
+		'#value' => 'Submit',
+	);
+
+	return $form;
+
+
+}
+
+function student_add_submit($form, &$form_state){
+	$name=$form_state['values']['name'];
+	$faculty=$form_state['values']['faculty'];
+	$age=$form_state['values']['age'];
+
+	$result = db_query("INSERT INTO student(name,faculty,age) VALUES ('{$name}','{$faculty}','{$age}')");
+	drupal_set_message("Form has been Inserted");
+	$form_state['redirect']='student/add';
+
+
+}
+
+?>

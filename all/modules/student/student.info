@@ -1,0 +1,5 @@
+name=Student Info
+core=7.x
+version=7.x
+description = This module provides all in one information of students
+package=Students
