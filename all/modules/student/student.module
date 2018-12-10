@@ -96,10 +96,22 @@ function student_add($form,&$form_submit){
 
 	$form['submit'] = array(
 		'#type' => 'submit',
-		'#value' => 'Submit',
+		'#value' => 'Submit'
 	);
 	return $form;
 
+
+}
+
+function student_add_validate($form,&$form_state){
+
+	if(empty($form_state['values']['name'])){
+		form_set_error('name','Name Cannot Be Empty Bitch!');
+	}elseif (empty($form_state['values']['faculty'])) {
+		form_set_error('faculty','Faculty Cannot Be Empty Bitch!');
+	}elseif (!is_numeric($form_state['values']['age']) || empty($form_state['values']['age'])) {
+		form_set_error('age','Age must be number!');
+	}
 
 }
 
