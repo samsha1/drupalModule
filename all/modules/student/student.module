@@ -34,12 +34,28 @@ function student_menu(){
 
 	);
 
+	 $items['student/edit'] = array(
+    	'title' => 'Edit Page',
+    	'page callback' => 'drupal_get_form',
+		'page arguments' => array('student_edit'),
+    	'access arguments' => array('access content'),
+    	'expanded' => TRUE,
+  	);	
+
+	$items['student/delete'] = array(
+		'page callback' => 'student_delete',
+		'access arguments' => array('access content'),
+		'expanded' => TRUE,
+
+
+	);
+
 	return $items;
 }
 
 
 function student_view(){
-	$results=db_query('SELECT * FROM student ORDER BY sid DESC');
+	$results=db_query('SELECT * FROM student ORDER BY sid ASC');
 	$rows = array();
 	$i=0;
 		foreach ($results as  $record) { 
@@ -82,8 +98,64 @@ function student_add($form,&$form_submit){
 		'#type' => 'submit',
 		'#value' => 'Submit',
 	);
-
 	return $form;
+
+
+}
+
+function student_edit($form,&$form_submit){
+	if(isset($_GET['id']) && !empty($_GET['id'])){
+	$result = db_query("SELECT * FROM student WHERE sid = {$_GET['id']}");
+	$row = array();
+		foreach($result as $record){
+			$row = (array)$record;
+		}
+	}
+	$form['id'] = array(
+		'#value' => $row['sid'],
+		'#type' => 'hidden',
+	);
+	$form['name'] = array(
+		'#default_value' => $row['name'],
+		'#type'=>'textfield',
+		'#title'=>t('Enter your name'),
+		'#required' => TRUE,
+		'#description'=>t('Your first name goes here')
+	);
+
+	$form['faculty'] = array(
+		'#default_value'=>$row['faculty'],
+		'#type'=>'textfield',
+		'#required' => TRUE,
+		'#title'=>t('Enter your Faculty'),
+		'#description'=>t('Your Faculty name goes here')
+	);
+
+	$form['age'] = array(
+		'#default_value'=>$row['age'],
+		'#type'=>'textfield',
+		'#required' => TRUE,
+		'#title'=>t('Enter your Age')
+	);
+
+	$form['submit'] = array(
+		'#type' => 'submit',
+		'#value' => 'Update',
+	);
+	return $form;
+
+
+}
+
+function student_delete(){
+	if(isset($_GET['id']) && !empty($_GET['id'])){
+		$result = db_query("DELETE FROM student WHERE sid = {$_GET['id']}");
+
+	}
+
+	drupal_set_message(t("Student has been Deleted from list"), 'status', FALSE);
+	header("Location: view");
+
 
 
 }
@@ -94,9 +166,20 @@ function student_add_submit($form, &$form_state){
 	$age=$form_state['values']['age'];
 
 	$result = db_query("INSERT INTO student(name,faculty,age) VALUES ('{$name}','{$faculty}','{$age}')");
-	drupal_set_message("Form has been Inserted");
+	drupal_set_message("Student Information has been Inserted");
 	$form_state['redirect']='student/add';
 
+
+}
+
+function student_edit_submit($form,&$form_state){
+	$name=$form_state['values']['name'];
+	$faculty=$form_state['values']['faculty'];
+	$age=$form_state['values']['age'];
+	$id=$form_state['values']['id'];
+	$result = db_query("UPDATE student SET name = '{$name}', faculty = '{$faculty}', age= '{$age}' WHERE sid = '{$id}'");
+	drupal_set_message("Student Details Have Been Updated");
+	$form_state['redirect']='student/view';
 
 }
 
